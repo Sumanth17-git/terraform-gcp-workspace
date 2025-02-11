@@ -3,11 +3,11 @@ name: 'Terraform'
 on:
   push:
     branches:
-      - main  # Runs when code is pushed to the main branch
+      - main
   pull_request:
     branches:
-      - main  # Runs on PRs to main branch
-  workflow_dispatch:  # Allows manual triggers
+      - main
+  workflow_dispatch:
 
 env:
   GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/gcp-credentials.json
@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
 
-    # Use Bash shell for cross-platform compatibility
     defaults:
       run:
         shell: bash
@@ -37,10 +36,12 @@ jobs:
       run: |
         if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
           echo "TF_WORKSPACE=production" >> $GITHUB_ENV
+          echo "TF_VAR_FILE=production.tfvars" >> $GITHUB_ENV
           echo "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID_PROD }}" >> $GITHUB_ENV
           echo "${{ secrets.GCP_CREDENTIALS_PROD }}" > $GOOGLE_APPLICATION_CREDENTIALS
         else
           echo "TF_WORKSPACE=dev" >> $GITHUB_ENV
+          echo "TF_VAR_FILE=dev.tfvars" >> $GITHUB_ENV
           echo "GCP_PROJECT_ID=${{ secrets.GCP_PROJECT_ID_DEV }}" >> $GITHUB_ENV
           echo "${{ secrets.GCP_CREDENTIALS_DEV }}" > $GOOGLE_APPLICATION_CREDENTIALS
         fi
@@ -62,7 +63,7 @@ jobs:
       run: terraform validate
 
     - name: Plan Terraform Changes
-      run: terraform plan -var="project_id=$GCP_PROJECT_ID" -out=tfplan
+      run: terraform plan -var-file="${TF_VAR_FILE}" -out=tfplan
 
     - name: Apply Terraform Changes (Main Branch Only)
       if: github.ref == 'refs/heads/main'
